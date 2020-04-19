@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Decimal Calculator Client</title>
+    <style>
+        body {
+            font-family: Segoe UI, Tahoma, Arial, Verdana, sans-serif;
+        }
+
+        #calcdisplay {
+            color: #333;
+            background-color: #fff;
+            padding: 0.2em;
+            min-height: 3em;
+            text-align: right;
+        }
+
+        #calc {
+            margin: 60px;
+            background-color: #028ec9;
+            padding: 1em;
+            border-radius: 0.5em;
+        }
+
+        #calc td {
+            height: 100%;
+        }
+
+        #calc button {
+            width: 100%;
+            height: 100%;
+            min-height: 3em;
+            min-width: 3em;
+        }
+    </style>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="/home/user/bower_components/autobahn/autobahn/autobahn.min.js"></script>
+
+    <script type="text/javascript">
+        try {
+            // for Node.js
+            var autobahn = require('autobahn');
+            autobahn.debug(true, true)
+        } catch (e) {
+            // for browsers (where AutobahnJS is available globally)
+        }
+
+        var connection = new autobahn.Connection({url: 'ws://127.0.0.1:8080/ws', realm: 'realm1'});
+        connection.onopen = function (session) {
+            console.log("Hello!");
+
+            // The doc: https://github.com/crossbario/autobahn-js/blob/master/doc/reference.md
+            // 1) subscribe to a topic
+            function onevent(args, kwargs, details) {
+                console.log("Event:", args[0]);
+            }
+
+            session.subscribe('public', onevent).then(
+               function (subscription) {
+                  console.log("subscription succeeded, subscription is an instance of autobahn.Subscription")
+               },
+               function (error) {
+                  console.log("subscription failed, error is an instance of autobahn.Error" + error)
+               }
+            );
+
+            // 2) publish an event
+            // The client that publish this message NOT receive it!
+            // To test this open second tab - published message will be there in console
+            session.publish('public', ['Hello, world!'], {}, {acknowledge: true}).then(
+               function (publication) {
+                   console.log("publish was successful")
+               },
+               function (error) {
+                  console.log("publish failed" + error)
+               }
+            );
+            // 3) register a procedure for remoting
+            function add2(args) {
+                return args[0] + args[1];
+            }
+            session.register('add2', add2);
+
+            // 4) call a remote procedure
+            session.call('add2', [2, 3]).then(
+                function (res) {
+                    console.log("Result local add:", res);
+                }
+            );
+
+            // 5) call procedure, registered in Python
+            session.call('remote_add', [2, 3]).then(
+                function (res) {
+                    console.log("Result remote add:", res);
+                }
+            );
+
+            // 6) call second procedure, registered in Python
+            session.call('send_public', ["Test"]).then(
+                function (res) {
+                    console.log("Result send_public:", res);
+                }
+            );
+        };
+
+        connection.open();
+    </script>
+</head>
+<body>
+
+</body>
+</html>
