@@ -7,6 +7,7 @@ from twisted.internet.defer import inlineCallbacks
 class AppSession(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
+        print("Connected!")
         yield self.register(self)
 
     @wamp.register("remote_add")
